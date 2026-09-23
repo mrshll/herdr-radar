@@ -105,9 +105,15 @@ test('the sidebar is drawn for the theme Herdr resolves', () => {
   assert.equal(resolve('[theme]\nname = "no-such-theme"\n').theme, 'catppuccin');
   // Herdr's own auto_switch ignores `name` and picks a side from the host; the
   // desktop stands in for that, and with no answer it is dark, as in Herdr.
+  // An unset side is `name`'s sibling; an unpaired theme is its own.
   const auto = '[theme]\nname = "nord"\nauto_switch = true\nlight_name = "one-light"\n';
   assert.deepEqual(resolve(auto, null, 'light'), { theme: 'one-light', variant: 'light', mode: 'light' });
-  assert.deepEqual(resolve(auto, null, null), { theme: 'catppuccin', variant: 'dark', mode: 'dark' });
+  assert.deepEqual(resolve(auto, null, null), { theme: 'nord', variant: 'dark', mode: 'dark' });
+  const paired = '[theme]\nname = "tokyo-night"\nauto_switch = true\n';
+  assert.deepEqual(resolve(paired, null, 'light'), { theme: 'tokyo-night-day', variant: 'light', mode: 'light' });
+  assert.equal(resolve('[theme]\nauto_switch = true\ndark_name = "nope"\n', null, 'dark').theme, 'catppuccin');
+  // An unpaired dark theme stays dark on a light host, so its rows do too.
+  assert.equal(resolve('[theme]\nname = "vesper"\nauto_switch = true\n', null, 'light').variant, 'dark');
   // `terminal` is the host's own colours: the side is the same guess.
   assert.deepEqual(resolve('[theme]\nname = "terminal"\n', null, 'light'), {
     theme: 'terminal',
@@ -115,9 +121,19 @@ test('the sidebar is drawn for the theme Herdr resolves', () => {
     mode: null,
   });
   assert.equal(resolve('[theme]\nname = "terminal"\n').variant, 'dark');
-  // With the desktop's appearance followed, the name applyAppearance drives wins.
+  // With the desktop's appearance followed, the name applyAppearance writes
+  // wins: the side's name, else catppuccin for that side, and an unknown side
+  // name is drawn as Herdr's manual fallback, catppuccin.
   assert.equal(resolve('[theme]\nname = "nord"\nlight_name = "one-light"\n', 'light').theme, 'one-light');
   assert.equal(resolve('[theme]\nname = "nord"\n', 'dark').theme, 'catppuccin');
+  assert.deepEqual(resolve('[theme]\nlight_name = "nope"\n', 'light'), {
+    theme: 'catppuccin',
+    variant: 'dark',
+    mode: null,
+  });
+  // …but only when there is a `[theme]` for it to write. Without one,
+  // applyAppearance refuses and Herdr keeps drawing catppuccin, dark.
+  assert.deepEqual(resolve('[ui]\n', 'light'), { theme: 'catppuccin', variant: 'dark', mode: null });
 });
 
 // chromeVariant reads the installed plugin's follow_appearance; with it on,
