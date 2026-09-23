@@ -10,7 +10,8 @@
   "scripts": {
     "check": "node tools/check.js",
     "format": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "node --test tools/tests/*.test.js"
   },
   "devDependencies": {
     "prettier": "^3.9.6"

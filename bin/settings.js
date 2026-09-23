@@ -19,7 +19,6 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const config = require('../lib/config');
-const palette = require('../lib/palette');
 const control = require('../lib/control');
 const state = require('../lib/state');
 const view = require('../lib/view');
@@ -146,15 +145,15 @@ const FIELDS = [
     key: 'active_row_bg_light',
     table: 'colors',
     kind: 'color',
-    fallback: palette.chrome.light.active_row_bg,
-    help: "Selected-row fill written to [theme.custom] for a light theme. Empty = keep the theme's own.",
+    fallback: null,
+    help: "Selected-row fill written to [theme.custom] for a light theme. Default: the theme's own selection colour. Empty = the theme's active_row_bg.",
   },
   {
     key: 'active_row_bg_dark',
     table: 'colors',
     kind: 'color',
-    fallback: palette.chrome.dark.active_row_bg,
-    help: "Selected-row fill for a dark theme. Empty = keep the theme's own.",
+    fallback: null,
+    help: "Selected-row fill for a dark theme. Default: the theme's own selection colour. Empty = the theme's active_row_bg.",
   },
 ];
 
@@ -250,6 +249,7 @@ function show(field, value) {
     case 'glyph':
       return value === '' ? `${DIM}none${R}` : `${codepoint(value)}  ${value}`;
     case 'color':
+      if (value === null) return 'from the theme';
       return value === '' ? `${DIM}theme's own${R}` : String(value);
     default:
       return String(value);
@@ -333,7 +333,7 @@ class Editor {
   beginEdit() {
     const field = this.field;
     const cur = this.effective(field);
-    const buffer = field.kind === 'glyph' ? codepoint(cur) : String(cur);
+    const buffer = field.kind === 'glyph' ? codepoint(cur) : String(cur ?? '');
     this.editing = { buffer };
   }
 
