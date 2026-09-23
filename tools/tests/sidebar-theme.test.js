@@ -159,38 +159,46 @@ test('a hand-set theme text colour wins over the built-in', () => {
   assert.equal(managed.sidebarInk(moded, nord).text, '#111111');
 });
 
-test('idle titles stay readable on a selected row', () => {
-  // A selected row is filled with the theme's own active_row_bg, or with the
-  // plugin's override when it writes one. Neither fill may swallow the text,
-  // and the stale tier must beat the fixed grey it replaced on both.
-  const ownRows = {
-    catppuccin: '#1e1e2e',
-    'catppuccin-latte': '#e6e9ef',
-    'tokyo-night': '#232636',
-    'tokyo-night-day': '#d2d3da',
-    dracula: '#373c52',
-    nord: '#434c5e',
-    gruvbox: '#323130',
-    'gruvbox-light': '#f2e5bc',
-    'one-dark': '#313640',
-    'one-light': '#d8dbe2',
-    solarized: '#164b57',
-    'solarized-light': '#eee8d5',
-    kanagawa: '#363646',
-    'kanagawa-lotus': '#d5cea3',
-    'rose-pine': '#26233a',
-    'rose-pine-dawn': '#e3d9cf',
-    vesper: '#101010',
-  };
-  for (const [name, ownRow] of Object.entries(ownRows)) {
+test('the selected row is filled from the theme’s own selection colours', () => {
+  for (const [name, surfaces] of Object.entries(palette.themeSurfaces)) {
+    const variant = palette.lightThemes.includes(name) ? 'light' : 'dark';
+    const fill = palette.rowFillFor(name, variant);
+    if (name === 'vesper') {
+      // Neither of vesper's own fills stands off its panel; the fixed one stays.
+      assert.equal(fill, palette.chrome.dark.active_row_bg);
+      continue;
+    }
+    assert.ok([surfaces.selection, surfaces.activeRow].includes(fill), name);
+    assert.ok(palette.contrast(fill, surfaces.panel) >= 1.2, `${name} fill does not read as selected`);
+  }
+  // A theme we have no surfaces for keeps the side's fixed fill.
+  assert.equal(palette.rowFillFor('terminal', 'light'), palette.chrome.light.active_row_bg);
+  assert.equal(palette.rowFillFor(null, 'dark'), palette.chrome.dark.active_row_bg);
+});
+
+test('idle titles stay readable on the selected row', () => {
+  // solarized-light's text is 4.1:1 on its own bare panel, so any fill that
+  // reads as selected costs it; these floors are what every built-in clears.
+  for (const name of Object.keys(palette.themeSurfaces)) {
     const variant = palette.lightThemes.includes(name) ? 'light' : 'dark';
     const block = managed.sidebarBlock(variant, palette.inkForTheme(name, variant));
-    const before = palette.stateFor(variant);
-    for (const row of [ownRow, palette.chrome[variant].active_row_bg]) {
-      const idle = cellFor(block, '$title_idle').fg;
-      const stale = cellFor(block, '$title_idle_stale').fg;
-      assert.ok(contrast(idle, row) >= 2.5, `${name} idle on ${row}: ${contrast(idle, row).toFixed(2)}:1`);
-      assert.ok(contrast(stale, row) > contrast(before.idleStale, row), `${name} stale on ${row}`);
-    }
+    const fill = palette.rowFillFor(name, variant);
+    const idle = cellFor(block, '$title_idle').fg;
+    const stale = cellFor(block, '$title_idle_stale').fg;
+    assert.ok(contrast(idle, fill) >= 3, `${name} idle on ${fill}: ${contrast(idle, fill).toFixed(2)}:1`);
+    assert.ok(contrast(stale, fill) >= 2.2, `${name} stale on ${fill}: ${contrast(stale, fill).toFixed(2)}:1`);
   }
+});
+
+test('the theme block writes the resolved theme’s fill', () => {
+  // follow_appearance off is passed explicitly, so this does not depend on
+  // the desktop of the machine running it.
+  const block = (text) => managed.themeBlockFor(text, null);
+  assert.match(block('[theme]\nname = "solarized-light"\n'), /active_row_bg = "#c9dcdf"/);
+  assert.match(block('[theme]\nname = "tokyonight"\n'), /active_row_bg = "#2d3650"/);
+  assert.match(block('[theme]\nname = "vesper"\n'), /active_row_bg = "#414868"/);
+  // No [theme], auto_switch and terminal leave the fill to Herdr, as before.
+  assert.equal(block('[ui]\n'), null);
+  assert.equal(block('[theme]\nname = "nord"\nauto_switch = true\n'), null);
+  assert.equal(block('[theme]\nname = "terminal"\n'), null);
 });
