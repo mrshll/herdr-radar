@@ -202,3 +202,60 @@ test('the theme block writes the resolved theme’s fill', () => {
   assert.equal(block('[theme]\nname = "nord"\nauto_switch = true\n'), null);
   assert.equal(block('[theme]\nname = "terminal"\n'), null);
 });
+
+test('each built-in gets the fill the rule picks from Herdr 0.9.0', () => {
+  // Written out by hand from src/app/state.rs, independent of themeSurfaces,
+  // so a transcription slip or a reversed choice shows up here.
+  const expected = {
+    catppuccin: '#313244',
+    'catppuccin-latte': '#bdd0f5',
+    'tokyo-night': '#2d3650',
+    'tokyo-night-day': '#b6cae7',
+    dracula: '#463f5d',
+    nord: '#40505d',
+    gruvbox: '#4b3f27',
+    'gruvbox-light': '#ebdbb2',
+    'one-dark': '#334659',
+    'one-light': '#cddbf8',
+    solarized: '#164b57',
+    'solarized-light': '#c9dcdf',
+    kanagawa: '#32384b',
+    'kanagawa-lotus': '#d5cea3',
+    'rose-pine': '#3b344b',
+    'rose-pine-dawn': '#e3d9cf',
+    vesper: '#414868',
+  };
+  for (const [name, fill] of Object.entries(expected)) {
+    const variant = palette.lightThemes.includes(name) ? 'light' : 'dark';
+    assert.equal(palette.rowFillFor(name, variant), fill, name);
+  }
+});
+
+test('a fill set in the plugin’s [colors] still wins', () => {
+  // The plugin config is read once at load, so each case runs in its own
+  // process against a throwaway config directory.
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { execFileSync } = require('node:child_process');
+  const root = path.resolve(__dirname, '../..');
+  const fillFor = (colors) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'radar-fill-'));
+    try {
+      fs.writeFileSync(path.join(dir, 'config.toml'), `follow_appearance = false\n${colors}`);
+      const script = `process.stdout.write(String(require('./lib/managed-config').themeBlockFor('[theme]\\nname = "solarized-light"\\n', null)))`;
+      const out = execFileSync(process.execPath, ['-e', script], {
+        cwd: root,
+        env: { ...process.env, HERDR_PLUGIN_CONFIG_DIR: dir },
+        encoding: 'utf8',
+      });
+      return out.match(/active_row_bg = "(#\w+)"/)?.[1] ?? null;
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  assert.equal(fillFor(''), '#c9dcdf');
+  assert.equal(fillFor('[colors]\nactive_row_bg_light = "#ffcc00"\n'), '#ffcc00');
+  // Empty means "no override at all": Herdr's own active_row_bg shows.
+  assert.equal(fillFor('[colors]\nactive_row_bg_light = ""\n'), null);
+});
