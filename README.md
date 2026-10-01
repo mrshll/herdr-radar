@@ -134,6 +134,8 @@ the config file and restarts the daemon.
 | `group_gap` | `true` | a blank row between groups |
 | `show_tab` | `false` | tab number in front of the title |
 | `trim_group_prefix` | `true` | drop the workspace name from a title when the header above already shows it |
+| `tag_token` | none | pane metadata token whose value labels the row, e.g. `role` |
+| `tag_labels` | none | short label per token value, e.g. `orchestrator=orc,implementer=imp`; the row leads with `[orc]` |
 | `worktree_mark` | `U+F418` | the mark on a worktree header, needs a Nerd Font; empty for none |
 | `follow_appearance` | `true` | switch Herdr's theme with the desktop's light/dark |
 | `colors.active_row_bg_light` | `#b9cdf2` | selected-row fill for a light theme; empty keeps the theme's own |
