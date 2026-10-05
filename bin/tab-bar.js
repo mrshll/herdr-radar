@@ -27,7 +27,7 @@ require('../lib/node-version');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { logPath, stateRoot } = require('../lib/paths');
+const { logPath, sessionRoot } = require('../lib/paths');
 const { paneContext } = require('../lib/lookup');
 const { compose } = require('../lib/tabline');
 
@@ -79,7 +79,7 @@ function main() {
 // Herdr chrome, not pane output, so when it looks wrong there is nothing to
 // read back — this is the only way to see what was asked and what we answered.
 function trace(pane, line, budget, row) {
-  if (!fs.existsSync(path.join(stateRoot, 'trace'))) return;
+  if (!fs.existsSync(path.join(sessionRoot, 'trace'))) return;
   try {
     fs.appendFileSync(
       logPath,
