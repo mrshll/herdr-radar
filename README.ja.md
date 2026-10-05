@@ -35,13 +35,13 @@ herdr-radar はその情報をサイドバーに載せます。完了したセ�
 
 ## 得られるもの
 
-<img src="assets/sidebar.webp" alt="herdr-radar のサイドバー：グループ、状態マーク、アクティビティ順" width="100%">
+<img src="assets/sidebar.webp" alt="ライトとダークのデスクトップでの herdr-radar のサイドバー：グループ、状態マーク、アクティビティ順" width="100%">
 
 - **状態が消えない。** チェックはペインにフォーカスするまで、クエスチョンマークはエージェントが
   再び動くまで残ります。idle は最後のターンからの経過時間で 3 段階に分かれ、放置された
   セッションは行ごと薄くなります。
 - **一覧に構造がある。** ワークスペースごとの見出し、git worktree はリポジトリの下にツリーで、
-  分割した画面の残りは分割元のペインの下にぶら下がり、いちばん忙しいプロジェクトが先頭、
+  分割した画面のペインは隣り合って並び、いちばん忙しいプロジェクトが先頭、
   Spaces 列も同じ色で塗られます。
 - **周辺も追従する。** タブバーに現在のディレクトリ、デスクトップのライト／ダークに合わせて
   Herdr のテーマが切り替わり、設定ポップアップひとつで全オプションを扱えます。
@@ -95,6 +95,31 @@ herdr plugin action invoke hhdebb.herdr-radar.state-start
 `plugin link` はビルド手順を実行しません。同じセットアップはデーモンの初回起動が行うので、
 3 行目が必要です。
 
+### エージェントに任せる
+
+次のひとかたまりをコーディングエージェントに貼れば、そのままインストールします:
+
+```text
+このマシンに Herdr のプラグイン herdr-radar をインストールしてください。
+
+1. herdr plugin install hhdebb/herdr-radar
+2. herdr plugin action invoke hhdebb.herdr-radar.state-start
+3. 確認: `herdr plugin list` で hhdebb.herdr-radar が enabled になっていること、
+   `herdr agent list` でエージェントが動いているペインに `sort_key` トークンが
+   付いていること（これは状態によらず必ず書かれます。ロゴのトークン名は
+   状態によって変わります）。
+
+`herdr server stop` は実行しないでください。Herdr のプロセスも終了させないで
+ください。すべてのペインのすべてのプログラムが終了します（あなたを動かして
+いるものも含みます）。再起動が必要な手順はひとつもありません。プラグインは
+初回起動時に自分で設定を書き、アイコンフォントは新しい端末ウィンドウが
+自動的に読み込みます。
+
+Herdr 0.9.0 以降と Node 18 以降が必要です。マークが四角で表示される場合は、
+その端末にコードポイントマップがありません。この件を含め
+https://github.com/hhdebb/herdr-radar の Troubleshooting を参照してください。
+```
+
 ## サイドバーの見え方
 
 ```
@@ -113,6 +138,84 @@ billing
 アクティビティ順。`prefix+a` で切り替えます。パネル全体を Herdr 本来の描画に戻す切り替えは
 設定ポップアップにあります。
 
+## 色の意味
+
+1 行について一目で知りたいことは 2 つあり、それぞれ別々に担われています。**ロゴ**は誰の
+エージェントかを、**タイトル**はそのエージェントが何をしているかを示します。どちらの読み取りも
+もう一方に依存しません。
+
+ロゴはそのベンダー自身の色をまといますが、まとうのはベンダーが**公開している**色だけです。
+自らを黒や白で署名するブランドには借りられる色相がないので、そのマークは単にインクで
+描かれます —— 明るいパネルでは黒、暗いパネルでは白 —— このプロジェクトが勝手に決めた色では
+ありません。行の状態がどう変わっても、ロゴは変わりません。
+
+タイトルは状態を担い、形もまた状態を担います。だから色が見えなくてもこのパネルは読めます：
+
+| 状態 | タイトル | その前 |
+| --- | --- | --- |
+| 作業中 | ベンダーの色 | 点字スピナー、回転 |
+| あなた待ち | 赤 | 疑問符、明滅 |
+| 完了 | 緑 | チェック。ペインにフォーカスするまで残る |
+| アイドル | 下記の鮮度スケール | リング |
+| 不明 | 紫 | リング |
+
+緑と赤は意味を持つ色であり、ブランドより優先されます。視線を引くために存在するので、どの
+ベンダー色もこの 2 色にはなりません。作業中のタイトルが共通の「ビジー色」ではなくベンダーの
+色相をまとうのは、30 行が並ぶ画面では、どの行の文字を読むより先に色相が「動いているセッション」
+同士を見分けるからです。
+
+**アイドルは状態ではなくグラデーションです。** エージェントが止まったあとに残る問いは
+「どれくらい前に」だけなので、タイトルは最後のターンからの時間とともに冷えていきます。最初の
+15 分は止まったばかりとして読め、その後 2 時間までは通常の文字色、それを過ぎると**行全体が
+薄くなり** —— ロゴもマークも一緒に —— グループの底に沈みます。どちらのしきい値も設定項目です
+（`activity_fresh_minutes`、`activity_stale_minutes`）。3 段階とも同じリングを描き、
+どの段かは色だけが語ります。古くなるにつれて形が変わるマークは、3 回覚え直させることになるからです。
+
+Spaces 列も同じベンダー色を使うので、どのワークスペースが Claude を、どれが Gemini を
+動かしているかはそちらでも見分けられます。
+
+## 対応するエージェント
+
+27 のベンダーが独自のマークを持っています：
+
+<!-- prettier-ignore -->
+| | | | |
+| --- | --- | --- | --- |
+| <img src="assets/marks/amp.svg" width="15" align="top"> Amp | <img src="assets/marks/agy.svg" width="15" align="top"> Antigravity | <img src="assets/marks/claude.svg" width="15" align="top"> Claude Code | <img src="assets/marks/cline.svg" width="15" align="top"> Cline |
+| <img src="assets/marks/codex.svg" width="15" align="top"> Codex | <img src="assets/marks/copilot.svg" width="15" align="top"> Copilot | <img src="assets/marks/crush.svg" width="15" align="top"> Crush | <img src="assets/marks/cursor.svg" width="15" align="top"> Cursor |
+| <img src="assets/marks/deepseek.svg" width="15" align="top"> DeepSeek | <img src="assets/marks/devin.svg" width="15" align="top"> Devin | <img src="assets/marks/gemini.svg" width="15" align="top"> Gemini | <img src="assets/marks/glm.svg" width="15" align="top"> GLM |
+| <img src="assets/marks/gpt.svg" width="15" align="top"> GPT | <img src="assets/marks/grok.svg" width="15" align="top"> Grok | <img src="assets/marks/hermes.svg" width="15" align="top"> Hermes | <img src="assets/marks/kilo.svg" width="15" align="top"> Kilo |
+| <img src="assets/marks/kimchi.svg" width="15" align="top"> Kimchi | <img src="assets/marks/kimi.svg" width="15" align="top"> Kimi | <img src="assets/marks/kiro.svg" width="15" align="top"> Kiro | <img src="assets/marks/maki.svg" width="15" align="top"> Maki |
+| <img src="assets/marks/mastracode.svg" width="15" align="top"> Mastra | <img src="assets/marks/muse.svg" width="15" align="top"> Muse | <img src="assets/marks/omp.svg" width="15" align="top"> Oh My Pi | <img src="assets/marks/opencode.svg" width="15" align="top"> OpenCode |
+| <img src="assets/marks/pi.svg" width="15" align="top"> Pi | <img src="assets/marks/qodercli.svg" width="15" align="top"> Qoder | <img src="assets/marks/qwen.svg" width="15" align="top"> Qwen | |
+
+Herdr はさらに 2 つ、Droid と Letta を検出しますが、いずれもこのプロジェクトが使える形で
+マークを公開していません。それらの行も他と同じように動作し —— 状態も色も並び順もグループ化も
+そのまま —— 独自のマークの代わりに汎用マークをまとうだけです。どちらかを追加するプルリクエストは
+歓迎します。Antigravity と Kiro のマークもそうして届きました。
+
+Herdr が認識してここに挙がっていないものも同じ扱いです：汎用マーク、独自の色、それ以外はすべて
+そのまま。
+
+### プロセス名がベンダーと一致しないとき
+
+GLM のセッションは素の `claude` バイナリを Anthropic 互換エンドポイントに向けて実行するため、
+Herdr は `claude` と検出します。これは正しく、これからも変わりません。既知のバイナリを包む
+ラッパーはすべて同じです。検出はその先を見通せず、このプラグインも同じです。そのペインが何を
+しているかは、起動した本人だけが知っています。
+
+ならばラッパー自身に名乗らせます。Herdr には表示専用のフィールドがあり、`exec` の前に
+1 行足すだけです:
+
+```sh
+herdr pane report-metadata "$HERDR_PANE_ID" --source user:cglm --display-agent glm
+exec claude "$@"
+```
+
+その行は GLM のマークと名前をまといます。`--clear-display-agent` で元に戻ります。この
+プラグインが認識しない値は行を空にせず無視されるので、`Claude: auth` のような人間向けの
+ラベルでも Claude のマークはそのまま残ります。
+
 ## 設定
 
 `prefix+,` で設定ポップアップを開きます。`↑↓` 選択、`←→` 変更、`↵` テキスト編集、`r` 既定値、
@@ -128,9 +231,10 @@ billing
 | `idle_grace_seconds` | `2.5` | ターン終了とみなすまで idle が続く必要のある時間 |
 | `activity_fresh_minutes` | `15` | 最後のターンからこの時間は fresh |
 | `activity_stale_minutes` | `120` | この時間ターンがなければ行が薄くなる |
-| `group_indent` | `2` | 見出しの下のメンバーの字下げ幅。`0` でフラット |
+| `group_indent` | `2` | ツリーの階層ごとの空白数。`0` でも見出しと空行は残り、ツリー線は描かない。フラット表示は `prefix+a` |
 | `group_gap` | `true` | グループ間の空行 |
-| `show_tab` | `false` | タイトルの前にタブ番号 |
+| `split_corner` | `false` | 分割画面の残りのペインを `├─` で最初のペインの下にぶら下げる |
+| `row_label` | `title` | 行の名前：`title` セッションのタイトル、`tab` タブ名、`both` 両方（旧 `show_tab = true`） |
 | `trim_group_prefix` | `true` | 見出しと同じ名前でタイトルが始まるとき、その部分を落とす |
 | `worktree_mark` | `U+F418` | worktree 見出しのマーク（Nerd Font が必要）。空で非表示 |
 | `follow_appearance` | `true` | デスクトップのライト／ダークに合わせて Herdr のテーマを切り替え |
@@ -160,9 +264,13 @@ billing
 別のフォントが同じ私用領域を主張しています（CJK フォントによくあります）。ターミナルは
 `Herdr Agent Icons Max` にコードポイント単位で割り当てる必要があり、フォールバックに加えるだけでは
 足りません。Ghostty / kitty：`herdr plugin action invoke hhdebb.herdr-radar.install-font` で書き込めます。
-それ以外：`U+E1A0–U+E1B3` と `U+E1C0–U+E1C5` を手で割り当ててください。コードポイント割り当ての
+それ以外：`U+E1A0–U+E1BA` と `U+E1C0–U+E1C5` を手で割り当ててください。コードポイント割り当ての
 ないターミナル（Windows Terminal、iTerm）は `dist/JetBrainsMonoHerdr-Regular.ttf` をターミナルの
 フォントに——アイコンを埋め込んだ JetBrains Mono です。
+
+Ghostty では割り当てが解決したかを答えられるのは `ghostty +show-face` だけで、
+`+show-config` も `+list-fonts` もどちらでも通ります。v1.3.7 以前が書いた行は
+ファミリー名を引用符で囲んでいて無効でした。インストールをもう一度実行してください。
 </details>
 
 <details>
@@ -236,7 +344,7 @@ herdr plugin uninstall hhdebb.herdr-radar
 常駐デーモンが 1 つ。Herdr のイベントストリームで起こされ、フレームごとに `herdr agent list` から
 スナップショットを取り、状態・グループ・ソートキーだけをサイドバーのトークンとして書きます。
 ネットワークは使いません。Herdr の設定と自身の状態ディレクトリ以外で読むのは、セッション自身の
-記録の末尾だけ——プラグインより古いペインに最終アクティビティ時刻を与えるためです。他の Herdr
+記録だけ（記録の末尾、Kilo Code ならそのストアの該当行）——プラグインより古いペインに最終アクティビティ時刻を与えるためです。他の Herdr
 プラグインと同じくあなたのユーザー権限で動き、Herdr はサンドボックス化しません。気になる場合は
 導入前に `herdr-plugin.toml` と `bin/` を読んでください。
 
