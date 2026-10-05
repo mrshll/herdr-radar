@@ -33,12 +33,12 @@ herdr-radar 把这些信息搬到侧边栏上：完工的勾一直亮到你看�
 
 ## 你会得到什么
 
-<img src="assets/sidebar.webp" alt="herdr-radar 侧边栏：分组、状态标记、按活跃度排序" width="100%">
+<img src="assets/sidebar.webp" alt="herdr-radar 侧边栏在亮色与暗色桌面下：分组、状态标记、按活跃度排序" width="100%">
 
 - **状态不会溜走。** 完工的勾保持到你聚焦那个面板，问号保持到 agent 重新干活，
   idle 按最后一轮距今多久分三档，放弃的会话整行变暗。
-- **列表有结构。** 工作区有表头，git worktree 挂在它的仓库下面成树，分屏的另外几半挂在
-  拆出它们的那个面板下面，最忙的项目排最前，Spaces 那一栏跟着状态着色。
+- **列表有结构。** 工作区有表头，git worktree 挂在它的仓库下面成树，同一块分屏的面板挨在
+  一起，最忙的项目排最前，Spaces 那一栏跟着状态着色。
 - **周边跟着配套。** 标签栏显示当前目录，桌面明暗翻转时 Herdr 主题跟着切，
   一个设置弹窗管所有选项。
 
@@ -88,6 +88,28 @@ herdr plugin action invoke hhdebb.herdr-radar.state-start
 
 `plugin link` 不跑构建步骤，同样的初始化由守护进程首次启动时完成，第三行就是为此。
 
+### 或者交给 agent 装
+
+把下面这段粘给任意编码 agent，它就知道怎么装：
+
+```text
+在这台机器上安装 Herdr 的 herdr-radar 插件。
+
+1. herdr plugin install hhdebb/herdr-radar
+2. herdr plugin action invoke hhdebb.herdr-radar.state-start
+3. 确认装上了：`herdr plugin list` 里 hhdebb.herdr-radar 是 enabled，
+   并且 `herdr agent list` 里跑着 agent 的面板带上了 `sort_key` token
+   （这个 token 与状态无关一直都在；徽标那个 token 的名字会随状态变）。
+
+不要执行 `herdr server stop`，也不要杀 Herdr 进程。那会结束所有面板里的
+所有程序，包括正在跑你的那个。这里没有任何一步需要重启：插件首次启动会自己
+完成配置，新开的终端窗口会自己认到图标字体。
+
+需要 Herdr 0.9.0 以上和 Node 18 以上。如果标记显示成方框，是这个终端没有
+对应的码位映射 —— 这种情况和其余问题都在 https://github.com/hhdebb/herdr-radar
+的 Troubleshooting 一节里。
+```
+
 ## 侧边栏长什么样
 
 ```
@@ -105,6 +127,74 @@ billing
 保留分组、两层都按活跃度排；`recent` 是扁平的活跃度列表，`prefix+a` 互切。整个面板也能
 交还给 Herdr 原生渲染，开关在设置里。
 
+## 颜色怎么读
+
+一行里值得一眼看清的有两件事，它们分开承载：**logo** 说这是谁家的 agent，**标题**说这个
+agent 正在干什么。两者互不影响。
+
+logo 穿的是厂商自己的颜色，而且只穿厂商**公开过**的那一个。一个把自己签成黑色或白色的品牌
+没有色相可借，那它的标记就用墨色画 —— 亮色面板上是黑的，暗色面板上是白的 —— 而不是替它编
+一个颜色。状态再怎么变，logo 不变。
+
+标题承载状态，而且形状也在承载，所以即使不看颜色，这块面板照样读得懂：
+
+| 状态 | 标题 | 标题前面 |
+| --- | --- | --- |
+| 在跑 | 厂商色 | 盲文转轮，转着 |
+| 等你决策 | 红 | 问号，一闪一闪 |
+| 干完了 | 绿 | 对勾，你看过那个面板才消 |
+| 空闲 | 下面那条活跃度刻度 | 圆环 |
+| 未知 | 紫 | 圆环 |
+
+绿和红是语义色，压过品牌 —— 它们的职责就是拽住视线，所以没有哪个厂商色可以是这两种。在跑的
+标题用厂商色而不是统一的「忙碌色」，是因为三十行同屏时，在你读到任何一行的字之前，色相就已经
+把一个在跑的会话和下一个分开了。
+
+**空闲不是一个状态，是一条渐变。** agent 一停下，剩下的唯一问题就是「停了多久」，所以标题
+随着距上次动作的时间变冷：头 15 分钟读作刚停下，之后是普通文字色直到两小时，再往后**整行变暗**
+—— logo、标记一起 —— 并沉到本组底部。两个门槛都是设置项（`activity_fresh_minutes`、
+`activity_stale_minutes`）。三档画的是同一个圆环，靠颜色区分：一个随着变旧而改变形状的标记，
+等于要人学三遍。
+
+Spaces 那一列用的是同一套厂商色，所以在那边也分得出哪个工作区在跑 Claude、哪个在跑 Gemini。
+
+## 支持哪些 agent
+
+二十七家有自己的标记：
+
+<!-- prettier-ignore -->
+| | | | |
+| --- | --- | --- | --- |
+| <img src="assets/marks/amp.svg" width="15" align="top"> Amp | <img src="assets/marks/agy.svg" width="15" align="top"> Antigravity | <img src="assets/marks/claude.svg" width="15" align="top"> Claude Code | <img src="assets/marks/cline.svg" width="15" align="top"> Cline |
+| <img src="assets/marks/codex.svg" width="15" align="top"> Codex | <img src="assets/marks/copilot.svg" width="15" align="top"> Copilot | <img src="assets/marks/crush.svg" width="15" align="top"> Crush | <img src="assets/marks/cursor.svg" width="15" align="top"> Cursor |
+| <img src="assets/marks/deepseek.svg" width="15" align="top"> DeepSeek | <img src="assets/marks/devin.svg" width="15" align="top"> Devin | <img src="assets/marks/gemini.svg" width="15" align="top"> Gemini | <img src="assets/marks/glm.svg" width="15" align="top"> GLM |
+| <img src="assets/marks/gpt.svg" width="15" align="top"> GPT | <img src="assets/marks/grok.svg" width="15" align="top"> Grok | <img src="assets/marks/hermes.svg" width="15" align="top"> Hermes | <img src="assets/marks/kilo.svg" width="15" align="top"> Kilo |
+| <img src="assets/marks/kimchi.svg" width="15" align="top"> Kimchi | <img src="assets/marks/kimi.svg" width="15" align="top"> Kimi | <img src="assets/marks/kiro.svg" width="15" align="top"> Kiro | <img src="assets/marks/maki.svg" width="15" align="top"> Maki |
+| <img src="assets/marks/mastracode.svg" width="15" align="top"> Mastra | <img src="assets/marks/muse.svg" width="15" align="top"> Muse | <img src="assets/marks/omp.svg" width="15" align="top"> Oh My Pi | <img src="assets/marks/opencode.svg" width="15" align="top"> OpenCode |
+| <img src="assets/marks/pi.svg" width="15" align="top"> Pi | <img src="assets/marks/qodercli.svg" width="15" align="top"> Qoder | <img src="assets/marks/qwen.svg" width="15" align="top"> Qwen | |
+
+Herdr 还认得另外两家，Droid 和 Letta，这两家都没有本项目能用的公开标记。它们的行跟别的行一样
+工作 —— 状态、颜色、排序、分组都正常 —— 只是穿的是通用标记而不是自己的。欢迎发 PR 把它们补上；
+Antigravity 和 Kiro 的标记就是这么来的。
+
+Herdr 认得而这里没列出的，显示方式也一样：通用标记、一个自己的颜色，其余一切照常。
+
+### 当进程名不等于厂商
+
+GLM 的会话跑的是原装 `claude` 二进制，只是指向了一个 Anthropic 兼容的端点，所以 Herdr
+检测出来就是 `claude` —— 没错，而且永远如此。任何包装已知二进制的做法都一样。检测看不穿
+这一层，本插件也看不穿：这个面板在干什么，只有启动它的人知道。
+
+那就让包装脚本自己说。Herdr 留了一个纯显示用的字段，`exec` 之前加一行就够：
+
+```sh
+herdr pane report-metadata "$HERDR_PANE_ID" --source user:cglm --display-agent glm
+exec claude "$@"
+```
+
+这一行随即换上 GLM 的标记和名字。`--clear-display-agent` 撤销。本插件不认得的值会被忽略
+而不是把行清空，所以像 `Claude: auth` 这种人话标签仍然保留 Claude 的标记。
+
 ## 设置
 
 `prefix+,` 打开设置弹窗：`↑↓` 选，`←→` 改，`↵` 编辑文本，`r` 恢复默认，`s` 保存并应用，
@@ -120,9 +210,10 @@ billing
 | `idle_grace_seconds` | `2.5` | idle 持续这么久才算一轮结束 |
 | `activity_fresh_minutes` | `15` | 最后一轮之后多久内算 fresh |
 | `activity_stale_minutes` | `120` | 多久没动算 stale，整行变暗 |
-| `group_indent` | `2` | 成员缩进几格，`0` 平铺 |
+| `group_indent` | `2` | 树的每层缩进空格数；`0` 时表头和空行保留，但不画树线；平铺列表用 `prefix+a` |
 | `group_gap` | `true` | 组之间留空行 |
-| `show_tab` | `false` | 标题前显示 tab 号 |
+| `split_corner` | `false` | 分屏的其余面板用 `├─` 角标挂在第一个下面 |
+| `row_label` | `title` | 行显示什么：`title` 会话标题、`tab` tab 名、`both` 两者都显示（原 `show_tab = true`） |
 | `trim_group_prefix` | `true` | 标题开头与分组表头同名时去掉那一截 |
 | `worktree_mark` | `U+F418` | worktree 表头的标记，需要 Nerd Font；置空不画 |
 | `follow_appearance` | `true` | 跟随桌面明暗切换 Herdr 主题 |
@@ -149,9 +240,13 @@ billing
 
 这段私有区被别的字体抢了，CJK 字体尤其常见。终端必须按码位映射到 `Herdr Agent Icons Max`，
 只加进 fallback 家族不够。Ghostty / kitty 跑一次 `herdr plugin action invoke hhdebb.herdr-radar.install-font`
-就写好了；其他终端手动映射 `U+E1A0–U+E1B3` 和 `U+E1C0–U+E1D1`。没有按码位映射能力的终端
+就写好了；其他终端手动映射 `U+E1A0–U+E1BA` 和 `U+E1C0–U+E1C5`。没有按码位映射能力的终端
 （Windows Terminal、iTerm）改用 `dist/JetBrainsMonoHerdr-Regular.ttf` 当主字体，它是打进了
 图标的 JetBrains Mono。
+
+Ghostty 上只有 `ghostty +show-face` 能说明映射到底生没生效，`+show-config` 和 `+list-fonts`
+两种情况下都一样通过。v1.3.7 及以前写进去的那行是失效的（家族名带了引号），
+重跑一次安装动作即可。
 </details>
 
 <details>
@@ -217,7 +312,7 @@ herdr plugin uninstall hhdebb.herdr-radar
 ## 工作方式
 
 一个常驻守护进程，由 Herdr 的事件流唤醒，每帧从 `herdr agent list` 取快照，只把状态、
-分组、排序键写成侧边栏 token。无网络；Herdr 配置和自己的状态目录之外只读会话记录的尾巴，
+分组、排序键写成侧边栏 token。无网络；Herdr 配置和自己的状态目录之外只读会话自己的记录（会话记录的尾巴，Kilo Code 则是它库里那一行），
 给比插件更老的面板补一个最后活跃时间。和所有 Herdr 插件一样以你的用户身份运行，Herdr
 不沙箱插件，在意的话装之前看一眼 `herdr-plugin.toml` 和 `bin/`。
 

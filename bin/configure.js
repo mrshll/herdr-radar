@@ -20,8 +20,8 @@ require('../lib/node-version');
 
 const managed = require('../lib/managed-config');
 const { stopAnimator } = require('../lib/stop');
-const { pluginId, reloadConfig } = require('../lib/herdr');
-const { stateRoot } = require('../lib/paths');
+const { pluginId, reloadConfig, notify } = require('../lib/herdr');
+const { stateRoot, sessionName, sessionRoot } = require('../lib/paths');
 const { NAME } = require('../lib/identity');
 
 // Key bindings are the user's own config, not a managed block, so this only
@@ -74,6 +74,7 @@ async function main() {
     }
     const result = mode === '--apply' ? managed.apply() : managed.remove();
     console.log(result.message);
+    if (!result.ok || result.skipped?.length) notify(`${NAME}: configure`, result.message);
     // `--reload` is what the manifest actions pass: a user who installed from
     // GitHub never sees this directory, so the action has to finish the job.
     if (process.argv.includes('--reload')) {
@@ -94,6 +95,7 @@ async function main() {
   console.log(`theme   ${has(managed.THEME_START).padEnd(16)} [theme.custom]`);
   console.log(`sidebar ${has(managed.SIDEBAR_START).padEnd(16)} [ui.sidebar.*]`);
   console.log(`state   ${''.padEnd(16)} ${stateRoot}`);
+  console.log(`session ${(sessionName() ?? 'default').padEnd(16)} ${sessionRoot}`);
 }
 
 main();
